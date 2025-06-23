@@ -28,5 +28,5 @@ ret = np.random.standard_normal(1000)
 dows = np.arange(1000) % 5
 lam = compute_lam_scad(ret)
 
-par = em_fit_ms_garch(ret, dows, K=2)
-prices, _, _, _ = simulate_ms_garch(par, dows, T=len(ret), P0=10_000)
+par = em_fit_ms_garch(ret, dows, lam_scad=lam, K=2)
+prices, _, _, _ = simulate_ms_garch(par, dows, lam_scad=lam, T=len(ret), P0=10_000)
