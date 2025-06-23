@@ -9,7 +9,7 @@ def log_sum_exp(vals):
     m = np.max(vals)
     return m + np.log(np.sum(np.exp(vals - m)) + 1e-12)
 
-def forward_backward_EM(returns, dows, par):
+def forward_backward_EM(returns, dows, par, lam_scad):
     K, D, T = par.K, par.D, len(returns)
     eps = 1e-12
     sigma2 = np.zeros((T,K))
@@ -25,7 +25,7 @@ def forward_backward_EM(returns, dows, par):
             g     = par.gamma[i, dt]
             resid = returns[t-1] - par.mu[i, dtm1]  
             raw_var = a + b*resid**2 + g*sigma2[t-1,i]
-            sigma2[t,i] = max(eps, scad_clip(raw_var, lam=LAM_SCAD))
+            sigma2[t,i] = max(eps, scad_clip(raw_var, lam=lam_scad))
 
     alpha_log = np.full((T,K), -np.inf)
     loglik = 0.0
@@ -192,7 +192,7 @@ def M_step(returns, dows, par, xi, xi2, sigma2):
     
     return par
 
-def em_fit_ms_garch(returns, dows, K=2, max_iter=250, tol=1e-5, verbose=False):
+def em_fit_ms_garch(returns, dows, lam_scad, K=2, max_iter=250, tol=1e-5, verbose=False):
 
     par = initialize_parameters(returns, dows, K, D=5)
     old_par = None
@@ -201,7 +201,7 @@ def em_fit_ms_garch(returns, dows, K=2, max_iter=250, tol=1e-5, verbose=False):
     
     for it in range(max_iter):
         globals()['EM_ITER'] = it
-        xi, xi2, sigma2, loglik = forward_backward_EM(returns, dows, par)
+        xi, xi2, sigma2, loglik = forward_backward_EM(returns, dows, par, lam_scad)
         new_par = M_step(returns, dows, par, xi, xi2, sigma2)
         if old_par is not None and old_ll is not None:
             dpar = param_distance(old_par,new_par)
@@ -216,13 +216,16 @@ def em_fit_ms_garch(returns, dows, K=2, max_iter=250, tol=1e-5, verbose=False):
         par = new_par
     return par
 
+from .utils import compute_lam_scad
+
 def fit_ms_garch_multi(ret, dow, K, n_start=12):
 
+    lam_scad = compute_lam_scad(ret)
     cand = []
     for s in range(n_start):
         np.random.seed(100+s)
-        p = em_fit_ms_garch(ret, dow, K, verbose=False)
-        _, _, _, ll = forward_backward_EM(ret, dow, p)
+        p = em_fit_ms_garch(ret, dow, lam_scad, K=K, verbose=False)
+        _, _, _, ll = forward_backward_EM(ret, dow, p, lam_scad)
         cand.append((ll, p))
     best = max(cand, key=lambda x: x[0])[1]
     return best
