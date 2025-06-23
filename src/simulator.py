@@ -1,7 +1,7 @@
 import numpy as np, math
 from .utils import EPS, scad_clip
 
-def simulate_ms_garch(model_par, dows, T, P0=10000, seed=999):
+def simulate_ms_garch(model_par, dows, lam_scad, T, P0=10000, seed=999):
     np.random.seed(seed)
     K = model_par.K
     D = model_par.D
@@ -31,7 +31,7 @@ def simulate_ms_garch(model_par, dows, T, P0=10000, seed=999):
         beta_  = model_par.beta[st_new, d_t]
         gamma_ = model_par.gamma[st_new, d_t]
         raw_var       = alpha_ + beta_*(resid_prev**2) + gamma_*sigma2_sim[t-1]
-        sigma2_sim[t] = max(1e-10, scad_clip(raw_var, lam=LAM_SCAD))
+        sigma2_sim[t] = max(1e-10, scad_clip(raw_var, lam=lam_scad))
         mu_ = model_par.mu[st_new, d_t]
         ret_ = np.random.normal(mu_, math.sqrt(sigma2_sim[t]))
         ret_ = max(min(ret_, 50), -50) 
