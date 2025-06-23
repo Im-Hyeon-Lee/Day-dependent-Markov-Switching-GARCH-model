@@ -9,7 +9,7 @@ def log_sum_exp(vals):
     m = np.max(vals)
     return m + np.log(np.sum(np.exp(vals - m)) + 1e-12)
 
-def forward_backward_EM(returns, dows, par, lam_scad):
+def forward_backward_EM(returns, dows, par, lam_scad, em_iter=0):
     K, D, T = par.K, par.D, len(returns)
     eps = 1e-12
     sigma2 = np.zeros((T,K))
@@ -62,7 +62,7 @@ def forward_backward_EM(returns, dows, par, lam_scad):
     xi_log = alpha_log + beta_log
     xi = np.exp(xi_log - xi_log.max(axis=1,keepdims=True))
 
-    Temp = max(1.0, TEMP0 * (0.9**EM_ITER))
+    Temp = max(1.0, TEMP0 * (0.9**em_iter))
     xi   = xi**(1.0/Temp)
     xi /= xi.sum(axis=1,keepdims=True)
 
@@ -199,9 +199,8 @@ def em_fit_ms_garch(returns, dows, lam_scad, K=2, max_iter=250, tol=1e-5, verbos
     old_ll  = None
     T = len(returns)
     
-    for it in range(max_iter):
-        globals()['EM_ITER'] = it
-        xi, xi2, sigma2, loglik = forward_backward_EM(returns, dows, par, lam_scad)
+     for it in range(max_iter):
+        xi, xi2, sigma2, loglik = forward_backward_EM(returns, dows, par, lam_scad, em_iter=it)
         new_par = M_step(returns, dows, par, xi, xi2, sigma2)
         if old_par is not None and old_ll is not None:
             dpar = param_distance(old_par,new_par)
